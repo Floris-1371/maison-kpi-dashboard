@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPI-Dashboard — Maison Management</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:24px}
+.container{max-width:980px;margin:0 auto;background:#fff;border-radius:10px;padding:28px 32px;border:1px solid #e0e0e0}
+.header{display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:3px solid #BE9331;margin-bottom:16px}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-logo img{height:52px;width:auto}
+.header-titles h1{font-size:20px;font-weight:700;color:#6E6E6E}
+.header-titles h1 span{color:#BE9331}
+.header-sub{font-size:12px;color:#aaa;margin-top:2px}
+.badge{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;background:#F9F3E3;color:#BE9331;border:1px solid #E8D49A}
+.instructions{background:#fff;border:1px solid #E8D49A;border-left:4px solid #BE9331;border-radius:6px;padding:12px 16px;margin-bottom:20px}
+.instructions strong{color:#BE9331;font-size:13px;display:block;margin-bottom:6px}
+.instructions ol{padding-left:16px;font-size:12px;color:#555;line-height:1.9}
+.demo-note{font-size:11px;color:#BE9331;margin-top:6px;font-style:italic}
+.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.tab{font-size:13px;padding:6px 18px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;color:#555;font-family:Arial,Helvetica,sans-serif;transition:all 0.15s}
+.tab:hover{background:#f0f0f0}
+.tab.active{color:#fff;border-color:transparent}
+.metrics-row{display:grid;gap:10px;margin-bottom:24px}
+.metric{background:#f9f9f9;border-radius:8px;padding:12px 14px;border:1px solid #ebebeb}
+.metric-label{font-size:10px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px;line-height:1.3}
+.metric-value{font-size:22px;font-weight:700;line-height:1.1}
+.metric-target{font-size:10px;color:#aaa;margin-top:2px}
+.metric-trend{font-size:11px;font-weight:600;margin-top:3px}
+.trend-goed{color:#3B6D11}
+.trend-slecht{color:#A32D2D}
+.trend-neutraal{color:#888}
+.charts-grid{display:grid;gap:16px;margin-bottom:24px}
+.chart-section{background:#f9f9f9;border-radius:8px;padding:14px;border:1px solid #ebebeb}
+.chart-label{font-size:12px;font-weight:600;color:#555;margin-bottom:3px}
+.chart-target-line{font-size:10px;color:#BE9331;margin-bottom:6px}
+.chart-wrap{position:relative;width:100%;height:160px}
+.divider{border:none;border-top:1px solid #ebebeb;margin:24px 0}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a1a1a}
+.week-select-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.week-select-row label{font-size:13px;color:#666;font-weight:600}
+.week-select-row select{font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif}
+.invoer-grid{display:grid;gap:10px;margin-bottom:14px}
+.invoer-card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px}
+.invoer-card label{font-size:10px;color:#999;display:block;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;line-height:1.3}
+.invoer-card input{width:100%;font-size:18px;font-weight:700;border:none;background:transparent;color:#1a1a1a;outline:none;font-family:Arial,Helvetica,sans-serif}
+.target-hint{font-size:10px;margin-top:3px;font-weight:600}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.btn-save{font-size:13px;padding:8px 22px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-family:Arial,Helvetica,sans-serif;font-weight:600}
+.btn-week{font-size:13px;padding:8px 22px;border-radius:6px;border:1px solid #BE9331;background:#fff;color:#BE9331;cursor:pointer;font-family:Arial,Helvetica,sans-serif;font-weight:600}
+.btn-week:hover{background:#F9F3E3}
+.save-msg{font-size:12px;color:#3B6D11;margin-top:8px;min-height:16px;font-weight:600}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid #ebebeb;font-size:11px;color:#bbb;display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-logo"><img src="data:image/png;base64,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" alt="Maison Management"></div>
+      <div class="header-titles">
+        <h1><span>KPI</span>-Dashboard meldingenproces</h1>
+        <div class="header-sub">Maison Management B.V. &mdash; Weekoverzicht meldingen</div>
+      </div>
+    </div>
+    <span class="badge" id="badge-week"></span>
+  </div>
+
+  <div class="instructions">
+    <strong>&#128161; Zo werkt dit dashboard</strong>
+    <ol>
+      <li>Klik op een tabblad om te wisselen tussen Totaal en individuele portefeuillemanagers</li>
+      <li>Scroll naar beneden, selecteer een week en vul de actuele cijfers in</li>
+      <li>Klik op <strong>Opslaan</strong> — de grafieken worden direct bijgewerkt</li>
+    </ol>
+    <div class="demo-note">&#9432; Week 23 bevat fictieve invoerdata ter illustratie van het dashboard.</div>
+  </div>
+
+  <div class="tabs" id="tabs-row"></div>
+  <div class="metrics-row" id="metrics-row"></div>
+  <div class="charts-grid" id="charts-grid"></div>
+
+  <hr class="divider">
+  <div class="section-title">Weekcijfers invoeren</div>
+  <div class="week-select-row">
+    <label>Week</label>
+    <select id="week-select"></select>
+    <label>Weergave</label>
+    <select id="view-select"></select>
+  </div>
+  <div id="invoer-section"></div>
+  <div class="btn-row">
+    <button class="btn-save" id="btn-save" onclick="saveWeek()">&#128190; Opslaan</button>
+    <button class="btn-week" onclick="addWeek()">+ Nieuwe week toevoegen</button>
+  </div>
+  <div class="save-msg" id="save-msg"></div>
+
+  <div class="footer">
+    <span style="font-size:13px;font-weight:700;color:#BE9331">Maison Management</span>
+    <span id="gen-date"></span>
+  </div>
+</div>
+
+<script>
+const VIEWS=['Totaal','Tony','Micha','Florine','Damien'];
+const MGR_COLORS={Totaal:'#BE9331',Tony:'#2E86AB',Micha:'#A23B72',Florine:'#3B6D11',Damien:'#D4700A'};
+const GOLD='#BE9331';
+
+const KPI_TOTAAL=[
+  {key:'backlog',label:'Backlog meldingen',target:1500,unit:'',lower:true},
+  {key:'norm24u',label:'24-uursnorm',target:90,unit:'%',lower:false},
+  {key:'doorloop',label:'Doorlooptijd (dagen)',target:30,unit:'d',lower:true},
+  {key:'googlescore',label:'Google-score',target:3.5,unit:'/5',lower:false},
+];
+const KPI_MGR=[
+  {key:'backlog',label:'Backlog meldingen',target:1500,unit:'',lower:true},
+  {key:'norm24u',label:'24-uursnorm',target:90,unit:'%',lower:false},
+  {key:'doorloop',label:'Doorlooptijd (dagen)',target:30,unit:'d',lower:true},
+];
+
+// Startdata W18-W22 (echt) + W23 (fictief per manager)
+const DEFAULT={
+  Totaal:[
+    {backlog:3753,norm24u:61,doorloop:75,googlescore:2.0},
+    {backlog:3680,norm24u:63,doorloop:74,googlescore:2.0},
+    {backlog:3612,norm24u:65,doorloop:72,googlescore:2.1},
+    {backlog:3540,norm24u:67,doorloop:71,googlescore:2.1},
+    {backlog:3480,norm24u:70,doorloop:70,googlescore:2.1},
+    {backlog:3290,norm24u:74,doorloop:67,googlescore:2.2},
+  ],
+  Tony:[
+    {backlog:940,norm24u:61,doorloop:75},
+    {backlog:920,norm24u:63,doorloop:74},
+    {backlog:903,norm24u:65,doorloop:72},
+    {backlog:885,norm24u:67,doorloop:71},
+    {backlog:870,norm24u:70,doorloop:70},
+    {backlog:780,norm24u:82,doorloop:58},
+  ],
+  Micha:[
+    {backlog:938,norm24u:60,doorloop:76},
+    {backlog:920,norm24u:62,doorloop:74},
+    {backlog:903,norm24u:64,doorloop:72},
+    {backlog:885,norm24u:66,doorloop:70},
+    {backlog:870,norm24u:69,doorloop:69},
+    {backlog:820,norm24u:76,doorloop:64},
+  ],
+  Florine:[
+    {backlog:938,norm24u:61,doorloop:76},
+    {backlog:920,norm24u:63,doorloop:74},
+    {backlog:903,norm24u:65,doorloop:73},
+    {backlog:885,norm24u:67,doorloop:71},
+    {backlog:870,norm24u:70,doorloop:70},
+    {backlog:850,norm24u:71,doorloop:68},
+  ],
+  Damien:[
+    {backlog:937,norm24u:62,doorloop:74},
+    {backlog:920,norm24u:63,doorloop:73},
+    {backlog:903,norm24u:65,doorloop:72},
+    {backlog:885,norm24u:67,doorloop:71},
+    {backlog:870,norm24u:70,doorloop:69},
+    {backlog:840,norm24u:68,doorloop:72},
+  ],
+};
+
+let weeks=['W18 2026','W19 2026','W20 2026','W21 2026','W22 2026','W23 2026'];
+let data=JSON.parse(JSON.stringify(DEFAULT));
+
+try{
+  const s=localStorage.getItem('maison_kpi_v3');
+  if(s){
+    const p=JSON.parse(s);
+    // Alleen laden als de weken overeenkomen met de standaard startdata
+    if(p.weeks&&p.weeks.length>=weeks.length){
+      weeks=p.weeks;data=p.data;
+    }
+  }
+}catch(e){}
+function persist(){try{localStorage.setItem('maison_kpi_v3',JSON.stringify({weeks,data}));}catch(e){}}
+
+let activeView='Totaal';
+let charts={};
+
+function getWeekNum(){const d=new Date();const j=new Date(d.getFullYear(),0,1);return Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+document.getElementById('badge-week').textContent='Week '+getWeekNum()+' — 2026';
+document.getElementById('gen-date').textContent='Gegenereerd op '+new Date().toLocaleDateString('nl-NL');
+
+function getColor(){return MGR_COLORS[activeView]||GOLD;}
+function getKPIs(){return activeView==='Totaal'?KPI_TOTAAL:KPI_MGR;}
+function get(key,wi){return data[activeView]?.[wi]?.[key]||0;}
+
+function trend(vals,lower){
+  const f=vals.filter(v=>v>0);
+  if(f.length<2)return'neutraal';
+  const d=f[f.length-1]-f[f.length-2];
+  if(d===0)return'neutraal';
+  return lower?(d<0?'goed':'slecht'):(d>0?'goed':'slecht');
+}
+function trendArrow(t){return t==='goed'?'↗ Verbeterd':t==='slecht'?'↘ Verslechterd':'→ Stabiel';}
+
+function renderTabs(){
+  const color=getColor();
+  document.getElementById('tabs-row').innerHTML=VIEWS.map(v=>`
+    <button class="tab${v===activeView?' active':''}"
+      style="${v===activeView?'background:'+MGR_COLORS[v]+';border-color:'+MGR_COLORS[v]:''}"
+      onclick="setView('${v}')">${v}</button>`).join('');
+}
+
+function renderMetrics(){
+  const kpis=getKPIs();
+  const color=getColor();
+  const cols=activeView==='Totaal'?4:3;
+  const row=document.getElementById('metrics-row');
+  row.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  row.innerHTML=kpis.map(kpi=>{
+    const vals=weeks.map((_,i)=>get(kpi.key,i));
+    const last=vals.filter(v=>v>0).slice(-1)[0]||0;
+    const t=trend(vals,kpi.lower);
+    const onTarget=kpi.lower?last<=kpi.target&&last>0:last>=kpi.target&&last>0;
+    return`<div class="metric" style="border-top:3px solid ${color}">
+      <div class="metric-label">${kpi.label}</div>
+      <div class="metric-value" style="color:${last>0?(onTarget?'#3B6D11':'#A32D2D'):'#ccc'}">${last>0?last+kpi.unit:'—'}</div>
+      <div class="metric-target">Doel: ${kpi.lower?'≤':'≥'} ${kpi.target}${kpi.unit}</div>
+      <div class="metric-trend trend-${t}">${trendArrow(t)}</div>
+    </div>`;
+  }).join('');
+}
+
+function destroyChart(key){if(charts[key]){charts[key].destroy();charts[key]=null;}}
+
+function makeBarChart(id,field,targetVal,isPercent){
+  destroyChart(id);
+  const color=getColor();
+  const vals=weeks.map((_,i)=>get(field,i));
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels:[...weeks],datasets:[
+      {type:'bar',data:vals,backgroundColor:color+'BB',borderColor:color,borderWidth:1,borderRadius:3,barPercentage:0.55},
+      {type:'line',data:weeks.map(()=>targetVal),borderColor:'#BE9331',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.datasetIndex===0?c.parsed.y+(isPercent?'%':''):'Doel: '+targetVal+(isPercent?'%':'')}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}},beginAtZero:true}}
+    }
+  });
+}
+
+function makeScoreChart(id){
+  destroyChart(id);
+  const g=weeks.map((_,i)=>get('googlescore',i));
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels:[...weeks],datasets:[
+      {type:'bar',data:g,backgroundColor:GOLD+'BB',borderColor:GOLD,borderWidth:1,borderRadius:3,barPercentage:0.55},
+      {type:'line',data:weeks.map(()=>3.5),borderColor:GOLD,borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.datasetIndex===0?c.parsed.y+'/5':'Doel: 3,5/5'}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}},min:0,max:5}}
+    }
+  });
+}
+
+function renderCharts(){
+  const isMgr=activeView!=='Totaal';
+  const grid=document.getElementById('charts-grid');
+  if(isMgr){
+    // 3 grafieken: 2 bovenaan, 1 eronder gecentreerd
+    grid.style.gridTemplateColumns='repeat(2,1fr)';
+    grid.innerHTML=`
+      <div class="chart-section"><div class="chart-label">Backlog meldingen</div><div class="chart-target-line">▾ Doel: ≤ 1.500</div><div class="chart-wrap"><canvas id="cBacklog"></canvas></div></div>
+      <div class="chart-section"><div class="chart-label">Naleving 24-uursnorm (%)</div><div class="chart-target-line">▴ Doel: ≥ 90%</div><div class="chart-wrap"><canvas id="c24u"></canvas></div></div>
+      <div class="chart-section" style="grid-column:1/-1;max-width:50%;margin:0 auto;width:100%"><div class="chart-label">Gemiddelde doorlooptijd (dagen)</div><div class="chart-target-line">▾ Doel: ≤ 30 dagen</div><div class="chart-wrap"><canvas id="cDoor"></canvas></div></div>`;
+  } else {
+    grid.style.gridTemplateColumns='repeat(2,1fr)';
+    grid.innerHTML=`
+      <div class="chart-section"><div class="chart-label">Backlog meldingen</div><div class="chart-target-line">▾ Doel: ≤ 1.500</div><div class="chart-wrap"><canvas id="cBacklog"></canvas></div></div>
+      <div class="chart-section"><div class="chart-label">Naleving 24-uursnorm (%)</div><div class="chart-target-line">▴ Doel: ≥ 90%</div><div class="chart-wrap"><canvas id="c24u"></canvas></div></div>
+      <div class="chart-section"><div class="chart-label">Gemiddelde doorlooptijd (dagen)</div><div class="chart-target-line">▾ Doel: ≤ 30 dagen</div><div class="chart-wrap"><canvas id="cDoor"></canvas></div></div>
+      <div class="chart-section"><div class="chart-label">Google-reviewscore (/5)</div><div class="chart-target-line">▴ Doel: ≥ 3,5 / 5</div><div class="chart-wrap"><canvas id="cScores"></canvas></div></div>`;
+  }
+  setTimeout(()=>{
+    makeBarChart('cBacklog','backlog',1500,false);
+    makeBarChart('c24u','norm24u',90,true);
+    makeBarChart('cDoor','doorloop',30,false);
+    if(!isMgr)makeScoreChart('cScores');
+  },50);
+}
+
+function setView(v){
+  activeView=v;
+  const color=MGR_COLORS[v];
+  document.getElementById('btn-save').style.background=color;
+  document.getElementById('btn-save').style.borderColor=color;
+  document.getElementById('view-select').value=v;
+  renderTabs();renderMetrics();renderCharts();renderInvoer();
+}
+
+function rebuildWeekSelect(idx){
+  const sel=document.getElementById('week-select');
+  sel.innerHTML='';
+  weeks.forEach((w,i)=>{const o=document.createElement('option');o.value=i;o.textContent=w;sel.appendChild(o);});
+  sel.value=idx!==undefined?idx:weeks.length-1;
+  renderInvoer();
+}
+
+function buildViewSelect(){
+  const sel=document.getElementById('view-select');
+  sel.innerHTML='';
+  VIEWS.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});
+  sel.value=activeView;
+}
+
+function renderInvoer(){
+  const wi=parseInt(document.getElementById('week-select').value);
+  const v=document.getElementById('view-select').value;
+  const kpis=v==='Totaal'?KPI_TOTAAL:KPI_MGR;
+  const d=data[v]?.[wi]||{};
+  const color=MGR_COLORS[v];
+  const cols=v==='Totaal'?4:3;
+  document.getElementById('invoer-section').innerHTML=`
+    <div style="font-size:12px;font-weight:600;color:${color};margin-bottom:10px">${v} — ${weeks[wi]}</div>
+    <div class="invoer-grid" style="grid-template-columns:repeat(${cols},1fr)">
+      ${kpis.map(kpi=>`
+        <div class="invoer-card" style="border-left:4px solid ${color}">
+          <label style="color:${color}">${kpi.label}</label>
+          <input type="number" id="inp-${kpi.key}" value="${d[kpi.key]||0}" min="0" step="${kpi.key.includes('score')?'0.1':'1'}">
+          <div class="target-hint" style="color:${color}">Doel: ${kpi.lower?'≤':'≥'} ${kpi.target}${kpi.unit}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function saveWeek(){
+  const wi=parseInt(document.getElementById('week-select').value);
+  const v=document.getElementById('view-select').value;
+  const kpis=v==='Totaal'?KPI_TOTAAL:KPI_MGR;
+  if(!data[v][wi])data[v][wi]={};
+  kpis.forEach(kpi=>{
+    const el=document.getElementById('inp-'+kpi.key);
+    if(el)data[v][wi][kpi.key]=parseFloat(el.value)||0;
+  });
+  persist();renderMetrics();renderCharts();
+  const msg=document.getElementById('save-msg');
+  msg.textContent='✓ Opgeslagen — '+v+', '+weeks[wi];
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+function addWeek(){
+  const last=weeks[weeks.length-1];
+  const match=last.match(/W(\d+)/);
+  const num=match?parseInt(match[1])+1:1;
+  weeks.push('W'+num+' 2026');
+  VIEWS.forEach(v=>{
+    if(!data[v])data[v]=[];
+    data[v].push(v==='Totaal'?{backlog:0,norm24u:0,doorloop:0,googlescore:0}:{backlog:0,norm24u:0,doorloop:0});
+  });
+  persist();
+  rebuildWeekSelect(weeks.length-1);renderMetrics();renderCharts();
+  const msg=document.getElementById('save-msg');
+  msg.textContent='W'+num+' 2026 toegevoegd — vul hieronder de cijfers in';
+  setTimeout(()=>msg.textContent='',3000);
+}
+
+document.getElementById('week-select').addEventListener('change',()=>{renderInvoer();updateBadge();});
+document.getElementById('view-select').addEventListener('change',()=>setView(document.getElementById('view-select').value));
+
+buildViewSelect();
+rebuildWeekSelect(weeks.length-1);
+renderTabs();renderMetrics();renderCharts();
+updateBadge();
+document.getElementById('btn-save').style.background=GOLD;
+document.getElementById('btn-save').style.borderColor=GOLD;
+</script>
+</body>
+</html>
